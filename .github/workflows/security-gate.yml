@@ -1,0 +1,33 @@
+name: Security Gate (Trivy)
+
+on: 
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  security-scan:
+    runs-on: ubuntu-latest
+
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker image
+        run:  docker build -t hardened-app .
+
+      - name: Run Trivy security scan
+        run: |
+          trivy image --severity HIGH,CRITICAL hardened-app | tee trivy-report.txt
+          trivy image --severity HIGH,CRITICAL --exit-code 1 hardened-app
+
+      - name: Upload Trivy report
+        uses: actions/upload-artifact@v4
+        with:
+          name: trivy-high-critical-report
+          path: trivy-report.txt
